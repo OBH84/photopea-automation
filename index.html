@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Photopea Automation</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        #photopea { border: 1px solid #ccc; margin-bottom: 20px; }
+        #controls { margin-bottom: 20px; }
+        #output { background: #f0f0f0; padding: 10px; border-radius: 5px; min-height: 100px; }
+    </style>
+</head>
+<body>
+    <h1>Photopea PSD Editor</h1>
+    
+    <div id="controls">
+        <button id="loadFile">1. Load PSD File</button>
+        <button id="updateText">2. Update Text Layer</button>
+        <button id="exportFile">3. Export PSD</button>
+        <input type="text" id="newText" value="Hello World" placeholder="New text for header">
+    </div>
+    
+    <div id="output">Status messages will appear here...</div>
+    
+    <iframe id="photopea" src="https://www.photopea.com" width="1000" height="600"></iframe>
+    
+    <script>
+        const photopeaFrame = document.getElementById('photopea');
+        const output = document.getElementById('output');
+        const newTextInput = document.getElementById('newText');
+        
+        // Log messages to the output div
+        function log(message) {
+            output.innerHTML += `<p>${message}</p>`;
+            console.log(message);
+        }
+        
+        // Send a message to Photopea
+        function sendToPhotopea(message) {
+            photopeaFrame.contentWindow.postMessage(message, '*');
+        }
+        
+        // Listen for messages from Photopea
+        window.addEventListener('message', function(event) {
+            if(event.data && event.data.type) {
+                log(`Received: ${JSON.stringify(event.data)}`);
+            }
+        });
+        
+        // Load the PSD file
+        document.getElementById('loadFile').addEventListener('click', function() {
+            log('Loading PSD file...');
+            sendToPhotopea({
+                method: "open",
+                url: "https://drive.google.com/uc?export=download&id=1WwwLhTroDIyRQHY97MpzuzHsMPCXNN1E"
+            });
+        });
+        
+        // Update the text layer
+        document.getElementById('updateText').addEventListener('click', function() {
+            const newText = newTextInput.value || 'Hello World';
+            log(`Updating text to: "${newText}"`);
+            
+            sendToPhotopea({
+                method: "runScript",
+                script: `
+                    try {
+                        var folder = app.activeDocument.layers.getByName('Advinity');
+                        var headerLayer = folder.layers.getByName('Header');
+                        headerLayer.textItem.contents = '${newText}';
+                        app.echoToOE('Text layer updated successfully');
+                    } catch (error) {
+                        app.echoToOE('Error: ' + error.message);
+                    }
+                `
+            });
+        });
+        
+        // Export the modified PSD
+        document.getElementById('exportFile').addEventListener('click', function() {
+            log('Exporting PSD file...');
+            sendToPhotopea({
+                method: "exportDocument",
+                format: "psd" 
+            });
+        });
+        
+        // Initialize
+        photopeaFrame.onload = function() {
+            log('Photopea loaded successfully. Click the buttons above to begin.');
+        };
+    </script>
+</body>
+</html>
